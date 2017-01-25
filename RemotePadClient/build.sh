@@ -1,1 +1,1 @@
-gcc RemotePad.c -o RemotePad.o
+gcc RemotePad.c -o RemotePad
