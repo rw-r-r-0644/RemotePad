@@ -10,7 +10,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
- 
+
 void keyDown(int key) {
 	INPUT ip;
 	// Set up a generic keyboard event.
@@ -48,54 +48,57 @@ const char * real_names[] = {"A", "B", "X", "Y", "LEFT", "RIGHT", "UP", "DOWN", 
 
 int main()
 {
-    printf("== RemotePad client ==\n");
-	char message[1024];
+	printf("== RemotePad client ==\n");
+	printf("Starting client...\n");
+
 	int sock;
 	struct sockaddr_in name;
 	struct hostent *hp, *gethostbyname();
 	int bytes;
-
-	printf("Listen activating.\n");
 	
-	/* Create socket from which to read */
-	sock = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sock < 0)   {
-		printf("Opening datagram socket");
+	// Create socket from which to read
+	sock = socket(AF_INET, SOCK_DGRAM, 0);	
+	if (sock < 0)
 		return 1;
-	}
   
-	/* Bind our local address so that the client can send to us */
-	bzero((char *) &name, sizeof(name));
-	name.sin_family = AF_INET;
+	// Bind our local address so that the client can send to us */
+	memset((char*)&name, 0, sizeof(name));
+	name.sin_family      = AF_INET;
 	name.sin_addr.s_addr = htonl(INADDR_ANY);
-	name.sin_port = htons(SERVER_PORT);
+	name.sin_port        = htons(SERVER_PORT);
   
-	if (bind(sock, (struct sockaddr *) &name, sizeof(name))) {
-		printf("binding datagram socket");
-		return 1;
-	}
-  
-	printf("Socket has port number #%d\n", ntohs(name.sin_port));
-  
-	while ((bytes = read(sock, message, 1024)) > 0) {
-		message[bytes] = '\0';
-		for (int i=0; i<22; i++) {
-			if (keystates[i] == false && message[i] == buttons_n_h[i]) {
+	if (bind(sock, (struct sockaddr *) &name, sizeof(name)))
+		return 2;
+	
+	if (ntohs(name.sin_port) != 4242)
+		return 3;
+	
+	printf("Ready for connections!\n");
+	
+	// Allocate buffer
+	char * incoming = malloc(1024);
+
+	while ((bytes = read(sock, incoming, 1024)) > 0) 
+	{
+		for (int i = 0; i < 22; i++) 
+		{
+			if (keystates[i] == false && incoming[i] == buttons_n_h[i]) 
+			{
 				keyDown(SCval[i]);
 				keystates[i] = true;
 				printf("Key Press:   %c (%s)\n", buttons_n_h[i], real_names[i]);
-			} else if(keystates[i] == true && message[i] != buttons_n_h[i]) {
+			} 
+			else if (keystates[i] == true && incoming[i] != buttons_n_h[i]) 
+			{
 				keyUp(SCval[i]);
 				keystates[i] = false;
 				printf("Key Release: %c (%s)\n", buttons_n_h[i], real_names[i]);
 			}
 		}
 	}
-
+	
+	free(incoming);
+	
 	close(sock);
- 
- 
- 
-    // Exit normally
-    return 0;
+	return 0;
 }
